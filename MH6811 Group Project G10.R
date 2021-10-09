@@ -57,3 +57,5 @@ library(class)
 knn.pred <- knn(train = knn.train.X, test = knn.test.X, cl = pd.train.Y, k = 5)
 table(knn.pred, pd.test.Y)
 mean(knn.pred != pd.test.Y) #MSE
+
+# test
