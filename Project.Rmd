@@ -1,0 +1,184 @@
+---
+title: "Project"
+output: html_document
+---
+
+```{r}
+# Read training data
+train.origin <- read.table('train.csv', sep = ",", stringsAsFactors = FALSE,na.strings=c(NA,''), header=TRUE)
+summary(train.origin)
+sum(is.na(train.origin))
+
+# Handle missing values in training data
+library(mice)
+md.pattern(train.origin)
+tempData <- mice(train.origin,m=5,maxit=50,meth='pmm')
+summary(tempData)
+completedData <- complete(tempData)
+sapply(completedData, function(x) sum(is.na(x)))
+train <- completedData
+library(zoo)
+train <- na.locf(na.locf(train),fromLast=TRUE)
+sum(is.na(train))
+
+# Read test data
+test.origin <- read.table('test.csv', sep = ",", stringsAsFactors = FALSE,na.strings=c(NA,''), header=TRUE)
+summary(test.origin)
+sum(is.na(test.origin))
+
+# Handle missing values in test data
+md.pattern(test.origin)
+tempData2 <- mice(test.origin,m=5,maxit=50,meth='pmm')
+summary(tempData2)
+completedData2 <- complete(tempData2)
+sapply(completedData2, function(x) sum(is.na(x)))
+test <- completedData2
+test <- na.locf(na.locf(test),fromLast=TRUE)
+sum(is.na(test))
+```
+
+
+```{r}
+# Divide the train and test data sets for training with a ratio of 7:3
+seed <- 114514
+set.seed(seed)
+sub<-sample(1:nrow(train),round(nrow(train)*7/10))
+length(sub)
+pd.train<-train[sub,]
+pd.test<-train[-sub,]
+pd.train.X <- pd.train[,c(2:12)]
+pd.test.X <- pd.test[,c(2:12)]
+pd.train.Y <- pd.train[,13]
+pd.test.Y <- pd.test[,13]
+```
+
+
+```{r}
+# Train with knn
+library(CatEncoders)
+t <- function(x) {
+  # check if x is numeric
+  if(is.numeric(x)) {
+    return (x)
+  }
+  l <- LabelEncoder.fit(x)
+  y <- transform(l, x)
+  return (y)
+}
+knn.train.X <- sapply(pd.train.X, t)
+knn.test.X <- sapply(pd.test.X, t)
+library(class)
+knn.pred <- knn(train = knn.train.X, test = knn.test.X, cl = pd.train.Y, k = 5)
+table(knn.pred, pd.test.Y)
+mean(knn.pred != pd.test.Y) #MSE
+```
+
+```{r}
+#Train with Decision Tree, format selected variables as factors
+library(tree)
+pd.train2 <- pd.train[,c(2:13)]
+pd.train2$Gender <- as.factor(pd.train2$Gender)
+pd.train2$Married <- as.factor(pd.train2$Married)
+pd.train2$Dependents <- as.factor(pd.train2$Dependents)
+pd.train2$Education <- as.factor(pd.train2$Education)
+pd.train2$Self_Employed <- as.factor(pd.train2$Self_Employed)
+pd.train2$Property_Area <- as.factor(pd.train2$Property_Area)
+pd.train2$Loan_Status <- as.factor(pd.train2$Loan_Status)
+pd.train2$Credit_History <- as.factor(pd.train2$Credit_History)
+pd.test2 <- pd.test[, c(2:13)]
+pd.test2$Gender <- as.factor(pd.test2$Gender)
+pd.test2$Married <- as.factor(pd.test2$Married)
+pd.test2$Dependents <- as.factor(pd.test2$Dependents)
+pd.test2$Education <- as.factor(pd.test2$Education)
+pd.test2$Self_Employed <- as.factor(pd.test2$Self_Employed)
+pd.test2$Property_Area <- as.factor(pd.test2$Property_Area)
+pd.test2$Loan_Status <- as.factor(pd.test2$Loan_Status)
+pd.test2$Credit_History <- as.factor(pd.test2$Credit_History)
+set.seed(seed)
+loan.tree <- tree(Loan_Status~.,data = pd.train2)
+summary(loan.tree)
+plot(loan.tree)
+text(loan.tree)
+loan.tree.pred <- predict(loan.tree, pd.test2, type = "class")
+(loan.tree.cm = table(loan.tree.pred, pd.test2$Loan_Status))
+(loan.tree.accuracy=sum(diag(loan.tree.cm))/sum(loan.tree.cm))
+```
+
+
+```{r}
+#Applying cross-validation to determine the best tree size
+set.seed(seed)
+loan.tree.cv <- cv.tree(loan.tree, FUN = prune.tree) 
+(loan.tree.bestsize <- loan.tree.cv$size[which.min(loan.tree.cv$dev)])
+#Best decision tree confusion matrix and accuracy
+loan.tree.pruned=prune.tree(loan.tree, best=loan.tree.bestsize) 
+loan.tree.pruned.pred=predict(loan.tree.pruned, pd.test2, type="class")
+(loan.tree.pruned.cm=table(loan.tree.pruned.pred, pd.test2$Loan_Status))
+(loan.tree.pruned.accuracy=sum(diag(loan.tree.pruned.cm))/sum(loan.tree.pruned.cm))
+```
+
+
+```{r}
+#Train with RandomForest
+library(randomForest)
+set.seed(seed)
+p = ncol(pd.train2)-1
+loan.rf = randomForest(Loan_Status~., data = pd.train2, mtry = ceiling(sqrt(p)),
+  ntree = 500, importance = TRUE)
+loan.rf
+#importance(loan.rf)
+#varImpPlot(loan.rf)
+```
+
+```{r}
+#RamdomForest confusion matrix and accuracy
+loan.rf.pred <- predict(loan.rf, newdata = pd.test2, type = "class")
+(loan.rf.cm <- table(loan.rf.pred, pd.test2$Loan_Status))
+(loan.rf.accuracy <- sum(diag(loan.rf.cm))/sum(loan.rf.cm))
+```
+
+```{r}
+#Data processing for AdaBoost
+n.train <- nrow(pd.train2)
+n.test <- nrow(pd.test2)
+pd.train2.X=model.matrix(Loan_Status~.-1,data=pd.train2) 
+pd.train2.y.ada=rep(1,n.train); pd.train2.y.ada[pd.train2$Loan_Status=="N"]=-1  
+pd.test2.X=model.matrix(Loan_Status~.-1,data=pd.test2) 
+pd.test2.y.ada=rep(1,n.test); pd.test2.y.ada[pd.test2$Loan_Status=="N"]=-1
+```
+
+```{r}
+#Fit AdaBoost
+library(JOUSBoost)
+set.seed(seed)
+loan.ada = adaboost(pd.train2.X, pd.train2.y.ada, n_rounds = 500)
+```
+
+```{r}
+#AdaBoost confusion matrix and accuracy
+loan.ada.predict = predict(loan.ada, pd.test2.X)
+(loan.ada.cm = table(loan.ada.predict, pd.test2.y.ada))
+(loan.ada.accuracy = sum(diag(loan.ada.cm))/sum(loan.ada.cm))
+```
+
+```{r}
+#Data processing for XGBoost
+pd.train2.y.xgb=rep(1,n.train); pd.train2.y.xgb[pd.train2$Loan_Status=="N"]=0  
+pd.test2.y.xgb=rep(1,n.test); pd.test2.y.xgb[pd.test2$Loan_Status=="N"]=0
+```
+
+```{r}
+#Fit XGBoost
+library(xgboost)
+set.seed(seed)
+loan.xgb = xgboost(data = pd.train2.X, label = pd.train2.y.xgb, nrounds = 500, verbose = FALSE)
+```
+
+```{r}
+#XGBoost confusion matrix and accuracy
+loan.xgb.pred.val = predict(loan.xgb, pd.test2.X)
+loan.xgb.pred = rep(0, n.test); loan.xgb.pred[loan.xgb.pred.val>0.5]=1
+(loan.xgb.cm = table(loan.xgb.pred, pd.test2.y.xgb))
+(load.xgb.accuracy = sum(diag(loan.xgb.cm))/sum(loan.xgb.cm))
+```
+
