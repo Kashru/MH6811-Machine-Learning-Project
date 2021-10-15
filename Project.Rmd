@@ -182,3 +182,59 @@ loan.xgb.pred = rep(0, n.test); loan.xgb.pred[loan.xgb.pred.val>0.5]=1
 (load.xgb.accuracy = sum(diag(loan.xgb.cm))/sum(loan.xgb.cm))
 ```
 
+```{r}
+# Standardization of the features:
+library(CatEncoders)
+t <- function(x) {
+  # check if x is numeric
+  if(is.numeric(x)) {
+    return (x)
+  }
+  l <- LabelEncoder.fit(x)
+  y <- transform(l, x)
+  return (y)
+}
+ffnn.train.X <- sapply(pd.train.X, t)
+ffnn.test.X <- sapply(pd.test.X, t)
+ffnn.train.X.mean <- apply(ffnn.train.X, 2, mean)
+ffnn.train.X.sd <- apply(ffnn.train.X, 2, sd)
+ffnn.train.X.scaled<-scale(ffnn.train.X,center=ffnn.train.X.mean,scale=ffnn.train.X.sd)
+ffnn.test.X.scaled<-scale(ffnn.test.X,center=ffnn.train.X.mean,scale=ffnn.train.X.sd)
+ffnn.train.scaled<-data.frame(ffnn.train.X.scaled,Loan_Status=pd.train.Y)
+ffnn.test.scaled<-data.frame(ffnn.test.X.scaled,Loan_Status=pd.test.Y)
+
+ffnn.train.X.scaled<-as.matrix(ffnn.train.X.scaled)
+ffnn.test.X.scaled<-as.matrix(ffnn.test.X.scaled)
+
+```
+
+
+```{r}
+# Feedforward Neural Network with neuralnet
+library(neuralnet)
+set.seed(114514)
+loan.neunet.rep <- neuralnet(Loan_Status ~ ., data = ffnn.train.scaled,
+                         hidden = c(5,3), 
+                         rep = 30,
+                         act.fct = 'logistic',
+                         err.fct = 'ce', 
+                         linear.output = FALSE,
+                         threshold = 0.1)
+(bestrep<-which.min(loan.neunet.rep$result.matrix["error",]))
+loan.neunet.rep$weights[[bestrep]]
+
+```
+```{r}
+plot(loan.neunet.rep,rep=bestrep) 
+
+```
+```{r}
+# Test error
+loan.neunet.pred.prob <- predict(loan.neunet.rep, ffnn.test.scaled, rep=bestrep) # Predicted "Probability" for each class
+loan.neunet.pred <- as.factor(max.col(loan.neunet.pred.prob))
+levels(loan.neunet.pred)<-levels(as.factor(ffnn.test.scaled$Loan_Status))
+pred.table <- table(loan.neunet.pred, pd.test.Y)
+library("caret")
+confusionMatrix(pred.table)
+
+```
