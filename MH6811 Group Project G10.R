@@ -14,7 +14,7 @@ train <- completedData
 library(zoo)
 train <- na.locf(na.locf(train),fromLast=TRUE)
 sum(is.na(train))
-print(train)
+
 # Read test data
 test.origin <- read.table('test.csv', sep = ",", stringsAsFactors = FALSE,na.strings=c(NA,''), header=TRUE)
 summary(test.origin)
@@ -30,7 +30,7 @@ test <- completedData2
 test <- na.locf(na.locf(test),fromLast=TRUE)
 sum(is.na(test))
 
-# Train with knn (Cross Validation)
+# Train with knn
 # Divide the train and test data sets for training with a ratio of 7:3
 set.seed(114514)
 sub<-sample(1:nrow(train),round(nrow(train)*7/10))
@@ -54,119 +54,6 @@ t <- function(x) {
 knn.train.X <- sapply(pd.train.X, t)
 knn.test.X <- sapply(pd.test.X, t)
 library(class)
-ErrTe=0; Kmax=50
-for(k in 1:Kmax){
-  knn.pred <- knn(train = knn.train.X, test = knn.test.X, cl = pd.train.Y, k = k)
-  ErrTe[k]=mean(knn.pred != pd.test.Y)
-}
-plot(ErrTe,type="l")
-print(which.min(ErrTe))
-
-knn.pred <- knn(train = knn.train.X, test = knn.test.X, cl = pd.train.Y, k = 10)
+knn.pred <- knn(train = knn.train.X, test = knn.test.X, cl = pd.train.Y, k = 5)
 table(knn.pred, pd.test.Y)
-mean(knn.pred != pd.test.Y) 
-
-# Train with Logistic Regression
-
-
-library(mlbench)
-library(caret)
-correlationMatrix <- cor(pd.train[,7:10])
-print(correlationMatrix)
-# ApplicantIncome and LoanAmount are highly correlated(0.55)
-
-library(nnet)
-nn.fit1 <- multinom(Loan_Status ~ Gender + Married + Dependents + Education + Self_Employed + ApplicantIncome + CoapplicantIncome + LoanAmount+ Loan_Amount_Term + Credit_History + Property_Area,data = pd.train)
-summary(nn.fit1)
-nn.pred <- predict(nn.fit1, type = "class" , newdata = pd.test)
-table(nn.pred,pd.test$Loan_Status)
-mean(nn.pred != pd.test.Y) 
-
-importance <- varImp(nn.fit1, scale=FALSE)
-print(importance)
-plot(importance)
-# we can see that credit history is much more important than the others
-
-nn.fit2 = multinom(Loan_Status ~ Credit_History ,data = pd.train)
-summary(nn.fit2)
-nn.pred <- predict(nn.fit2, type = "class" , newdata = pd.test)
-table(nn.pred,pd.test$Loan_Status)
-mean(nn.pred != pd.test.Y)
-# After deleting all the variables except credit history, we found that error rate does not change.
-
-#Train with SVM
-library(e1071)
-set.seed(1)
-library(CatEncoders)
-t <- function(x) {
-  # check if x is numeric
-  if(is.numeric(x)) {
-    return (x)
-  }
-  l <- LabelEncoder.fit(x)
-  y <- transform(l, x)
-  return (y)
-}
-
-svm.train <- sapply(pd.train, t)
-svm.test <- sapply(pd.test, t)
-svm.train = data.frame(svm.train)
-svm.test = data.frame(svm.test)
-#Linear Kernel
-library(mlbench)
-library(caret)
-tune.out <- tune(svm,Loan_Status~., 
-                 data=svm.train, 
-                 kernel="linear", 
-                 ranges=list(cost=c(0.001, 0.01, 0.1, 1,5,10,100)),tunecontrol=tune.control(cross=5))
-summary(tune.out)
-svm.best <- tune.out$best.model
-summary(svm.best)
-svm.pred <- predict(svm.best, svm.test)
-svm.pred  = round(svm.pred)
-table(svm.pred, svm.test$Loan_Status)
-mean(svm.pred != svm.test$Loan_Status )
-
-importance <- varImp(svm.best, scale=FALSE)
-print(importance)
-plot(importance)
-#Polynomial Kernel
-set.seed(1)
-tune.out <- tune(svm,Loan_Status~., 
-                 data=svm.train, 
-                 kernel="polynomial", 
-                 ranges=list(cost=c(0.001,0.01,0.1,1),
-                             degree=c(2,3,4,5)))
-summary(tune.out)
-svm.best <- tune.out$best.model
-summary(svm.best)
-svm.pred <- predict(svm.best, svm.test)
-svm.pred  = round(svm.pred)
-for(x in 1:length(svm.pred)) {
-  if (svm.pred[x]<1){
-    svm.pred[x] = 1
-  }
-    
-}
-table(svm.pred, svm.test$Loan_Status)
-mean(svm.pred != svm.test$Loan_Status )
-#RBF Kernel
-set.seed(1)
-tune.out <- tune(svm,Loan_Status~., 
-                 data=svm.train, 
-                 kernel="radial", 
-                 ranges=list(cost=c(0.001,0.01,0.1,1),
-                             gamma=c(0.01,0.1,1,10)))
-summary(tune.out)
-svm.best <- tune.out$best.model
-summary(svm.best)
-svm.pred <- predict(svm.best, svm.test)
-svm.pred  = round(svm.pred)
-for(x in 1:length(svm.pred)) {
-  if (svm.pred[x]<1){
-    svm.pred[x] = 1
-  }
-  
-}
-table(svm.pred, svm.test$Loan_Status)
-mean(svm.pred != svm.test$Loan_Status )
+mean(knn.pred != pd.test.Y) #MSE
