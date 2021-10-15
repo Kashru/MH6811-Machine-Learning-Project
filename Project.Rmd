@@ -238,3 +238,66 @@ library("caret")
 confusionMatrix(pred.table)
 
 ```
+
+```{r}
+# Feedforward Neural Networks with Keras and TensorFlow
+library(keras)
+library(tensorflow)
+
+y.keras <- as.factor(pd.train.Y)
+levels(y.keras) = 0:1
+y.keras.ohc = to_categorical(y.keras , num_classes = 2)
+
+```
+
+```{r}
+set.seed(114514)
+# create sequential model
+ffnn.keras.model = keras_model_sequential()
+
+# add layers, first layer needs input dimension
+ffnn.keras.model %>%
+  layer_dense(input_shape = ncol(ffnn.train.X.scaled), units = 10, activation = "relu") %>%
+  layer_dense(units = 10, activation = "relu") %>%
+  layer_dense(units = 2, activation = "softmax")
+
+# add a loss function and optimizer
+ffnn.keras.model %>%
+  compile(
+    loss = "categorical_crossentropy",
+    optimizer = "rmsprop",
+    metrics = "accuracy"
+  )
+
+# fit model with our training data set, training will be done for 200 times data set
+loan.ffnn.keras = ffnn.keras.model %>%
+  fit(
+    x = ffnn.train.X.scaled,
+    y = y.keras.ohc,
+    shuffle = T,
+    epochs = 100
+  )
+
+```
+
+
+```{r}
+y.keras <- as.factor(pd.test.Y)
+levels(y.keras) = 0:1
+y.keras.test.ohc = to_categorical(y , num_classes = 2)
+evaluate(ffnn.keras.model, ffnn.test.X.scaled, y.keras.test.ohc, batch_size =1)
+
+```
+
+```{r}
+loan.keras.pred.prob<-predict(ffnn.keras.model, ffnn.test.X.scaled, y.keras.test.ohc, batch_size =1)
+loan.keras.pred<-as.factor(max.col(loan.keras.pred.prob))
+levels(loan.keras.pred) <- levels(as.factor(pd.test.Y))
+keras.pred.table <- table(loan.keras.pred, pd.test.Y)
+```
+
+
+```{r}
+confusionMatrix(keras.pred.table)
+
+```
