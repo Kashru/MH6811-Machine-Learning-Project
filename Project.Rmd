@@ -121,7 +121,7 @@ loan.tree.pred <- predict(loan.tree, pd.test2, type = "class")
 #Applying cross-validation to determine the best tree size
 set.seed(seed)
 loan.tree.cv <- cv.tree(loan.tree, FUN = prune.tree) 
-(loan.tree.bestsize <- loan.tree.cv$size[which.min(loan.tree.cv$dev)])
+(loan.tree.bestsize <- max(loan.tree.cv$size[which.min(loan.tree.cv$dev)],3))
 #Best decision tree confusion matrix and accuracy
 loan.tree.pruned=prune.tree(loan.tree, best=loan.tree.bestsize) 
 loan.tree.pruned.pred=predict(loan.tree.pruned, pd.test2, type="class")
@@ -129,6 +129,34 @@ loan.tree.pruned.pred=predict(loan.tree.pruned, pd.test2, type="class")
 (loan.tree.pruned.accuracy=sum(diag(loan.tree.pruned.cm))/sum(loan.tree.pruned.cm))
 ```
 
+```{r}
+#Train with Decision Tree selected above using full training set
+train2 <- train[,c(2:13)]
+train2$Gender <- as.factor(train2$Gender)
+train2$Married <- as.factor(train2$Married)
+train2$Dependents <- as.factor(train2$Dependents)
+train2$Education <- as.factor(train2$Education)
+train2$Self_Employed <- as.factor(train2$Self_Employed)
+train2$Property_Area <- as.factor(train2$Property_Area)
+train2$Loan_Status <- as.factor(train2$Loan_Status)
+train2$Credit_History <- as.factor(train2$Credit_History)
+test2 <- test[, c(2:12)]
+test2$Gender <- as.factor(test2$Gender)
+test2$Married <- as.factor(test2$Married)
+test2$Dependents <- as.factor(test2$Dependents)
+test2$Education <- as.factor(test2$Education)
+test2$Self_Employed <- as.factor(test2$Self_Employed)
+test2$Property_Area <- as.factor(test2$Property_Area)
+test2$Credit_History <- as.factor(test2$Credit_History)
+set.seed(seed)
+loan.tree.final <- tree(Loan_Status~.,data = train2)
+loan.tree.final.pruned=prune.tree(loan.tree.final, best=loan.tree.bestsize) 
+summary(loan.tree.final.pruned)
+plot(loan.tree.final.pruned)
+text(loan.tree.final.pruned)
+loan.tree.pred.final <- predict(loan.tree.final.pruned, test2, type = "class")
+#End of Decision Tree
+```
 
 ```{r}
 #Train with RandomForest
@@ -143,10 +171,23 @@ loan.rf
 ```
 
 ```{r}
-#RamdomForest confusion matrix and accuracy
+#RandomForest confusion matrix and accuracy
 loan.rf.pred <- predict(loan.rf, newdata = pd.test2, type = "class")
 (loan.rf.cm <- table(loan.rf.pred, pd.test2$Loan_Status))
 (loan.rf.accuracy <- sum(diag(loan.rf.cm))/sum(loan.rf.cm))
+```
+
+```{r}
+#Train with RandomForest using all training data
+set.seed(seed)
+p = ncol(train2)-1
+loan.rf.final = randomForest(Loan_Status~., data = train2, mtry = ceiling(sqrt(p)),
+  ntree = 500, importance = TRUE)
+loan.rf.final
+importance(loan.rf.final)
+varImpPlot(loan.rf.final)
+loan.rf.pred.final <- predict(loan.rf.final, newdata = test2, type = "class")
+#End of RandomForest
 ```
 
 ```{r}
@@ -174,6 +215,20 @@ loan.ada.predict = predict(loan.ada, pd.test2.X)
 ```
 
 ```{r}
+#Train with AdaBoost using all training data
+n.train.final <- nrow(train2)
+n.test.final <- nrow(test2)
+train2.X=model.matrix(Loan_Status~.-1,data=train2) 
+train2.y.ada=rep(1,n.train.final); train2.y.ada[train2$Loan_Status=="N"]=-1  
+test2.X=model.matrix(~.-1, data=test2) 
+set.seed(seed)
+loan.ada.final = adaboost(train2.X, train2.y.ada, n_rounds = 500)
+loan.ada.predict.raw = predict(loan.ada.final, test2.X)
+loan.ada.predict.final = rep("Y", n.test.final); loan.ada.predict.final[loan.ada.predict.raw==-1]="N"
+#End of AdaBoost
+```
+
+```{r}
 #Data processing for XGBoost
 pd.train2.y.xgb=rep(1,n.train); pd.train2.y.xgb[pd.train2$Loan_Status=="N"]=0  
 pd.test2.y.xgb=rep(1,n.test); pd.test2.y.xgb[pd.test2$Loan_Status=="N"]=0
@@ -192,6 +247,16 @@ loan.xgb.pred.val = predict(loan.xgb, pd.test2.X)
 loan.xgb.pred = rep(0, n.test); loan.xgb.pred[loan.xgb.pred.val>0.5]=1
 (loan.xgb.cm = table(loan.xgb.pred, pd.test2.y.xgb))
 (load.xgb.accuracy = sum(diag(loan.xgb.cm))/sum(loan.xgb.cm))
+```
+
+```{r}
+#Train with XGBoost using all training data
+train2.y.xgb=rep(1,n.train.final); train2.y.xgb[train2$Loan_Status=="N"]=0  
+test2.y.xgb=rep(1,n.test.final)
+set.seed(seed)
+loan.xgb.final = xgboost(data = train2.X, label = train2.y.xgb, nrounds = 500, verbose = FALSE)
+loan.xgb.pred.raw = predict(loan.xgb.final, test2.X)
+loan.xgb.pred.final = rep("N", n.test); loan.xgb.pred.final[loan.xgb.pred.raw>0.5]="Y"
 ```
 
 ```{r}
