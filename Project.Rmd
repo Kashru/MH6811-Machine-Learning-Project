@@ -317,9 +317,12 @@ confusionMatrix(keras.pred.table)
 ```{r}
 # Train with Logistic Regression
 
-
+install.packages("caret",dependencies = TRUE)
 library(mlbench)
 library(caret)
+
+
+
 correlationMatrix <- cor(pd.train[,7:10])
 print(correlationMatrix)
 # ApplicantIncome and LoanAmount are highly correlated(0.55)
@@ -330,7 +333,7 @@ summary(nn.fit1)
 nn.pred <- predict(nn.fit1, type = "class" , newdata = pd.test)
 table(nn.pred,pd.test$Loan_Status)
 mean(nn.pred != pd.test.Y) 
-
+Accuracy = 1 - mean(nn.pred != pd.test.Y) ;Accuracy
 importance <- varImp(nn.fit1, scale=FALSE)
 print(importance)
 plot(importance)
@@ -342,6 +345,7 @@ nn.pred <- predict(nn.fit2, type = "class" , newdata = pd.test)
 table(nn.pred,pd.test$Loan_Status)
 mean(nn.pred != pd.test.Y)
 # After deleting all the variables except credit history, we found that error rate does not change.
+
 ```
 
 
@@ -365,23 +369,19 @@ svm.test <- sapply(pd.test, t)
 svm.train = data.frame(svm.train)
 svm.test = data.frame(svm.test)
 #Linear Kernel
-library(mlbench)
-library(caret)
 tune.out <- tune(svm,Loan_Status~., 
                  data=svm.train, 
                  kernel="linear", 
                  ranges=list(cost=c(0.001, 0.01, 0.1, 1,5,10,100)),tunecontrol=tune.control(cross=5))
 summary(tune.out)
-svm.best <- tune.out$best.model
-summary(svm.best)
-svm.pred <- predict(svm.best, svm.test)
+linear_svm.best <- tune.out$best.model
+summary(linear_svm.best)
+svm.pred <- predict(linear_svm.best, svm.test)
 svm.pred  = round(svm.pred)
 table(svm.pred, svm.test$Loan_Status)
 mean(svm.pred != svm.test$Loan_Status )
 
-importance <- varImp(svm.best, scale=FALSE)
-print(importance)
-plot(importance)
+
 #Polynomial Kernel
 set.seed(1)
 tune.out <- tune(svm,Loan_Status~., 
@@ -390,9 +390,9 @@ tune.out <- tune(svm,Loan_Status~.,
                  ranges=list(cost=c(0.001,0.01,0.1,1),
                              degree=c(2,3,4,5)))
 summary(tune.out)
-svm.best <- tune.out$best.model
-summary(svm.best)
-svm.pred <- predict(svm.best, svm.test)
+poly_svm.best <- tune.out$best.model
+summary(poly_svm.best)
+svm.pred <- predict(poly_svm.best, svm.test)
 svm.pred  = round(svm.pred)
 for(x in 1:length(svm.pred)) {
   if (svm.pred[x]<1){
@@ -410,9 +410,9 @@ tune.out <- tune(svm,Loan_Status~.,
                  ranges=list(cost=c(0.001,0.01,0.1,1),
                              gamma=c(0.01,0.1,1,10)))
 summary(tune.out)
-svm.best <- tune.out$best.model
-summary(svm.best)
-svm.pred <- predict(svm.best, svm.test)
+RBF_svm.best <- tune.out$best.model
+summary(RBF_svm.best)
+svm.pred <- predict(RBF_svm.best, svm.test)
 svm.pred  = round(svm.pred)
 for(x in 1:length(svm.pred)) {
   if (svm.pred[x]<1){
@@ -422,6 +422,13 @@ for(x in 1:length(svm.pred)) {
 }
 table(svm.pred, svm.test$Loan_Status)
 mean(svm.pred != svm.test$Loan_Status )
+Accuracy = 1 - mean(svm.pred != svm.test$Loan_Status );Accuracy
 
-
+```
+```{r}
+#Utilize Logistic Regression and SVM to predict test data
+logistic.pred <- predict(nn.fit2, type = "class" , newdata = test)
+linear_svm.pred <- predict(linear_svm.best, type = "class" , newdata = test)
+poly_svm.pred <- predict(poly_svm.best, type = "class" , newdata = test)
+RBF_svm.pred <- predict(RBF_svm.best, type = "class" , newdata = test)
 ```
