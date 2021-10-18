@@ -317,6 +317,22 @@ confusionMatrix(pred.table)
 ```
 
 ```{r}
+# Real prediction on the test set
+ffnn.real <- sapply(test, t)
+ffnn.real.mean <- apply(ffnn.real, 2, mean)
+ffnn.real.sd <- apply(ffnn.real, 2, sd)
+ffnn.real.scaled <- scale(ffnn.real,center=ffnn.real.mean,scale=ffnn.real.sd)
+ffnn.real.scaled <- as.matrix(ffnn.real.scaled)
+
+loan.neunet.real.pred.prob <- predict(loan.neunet.rep, ffnn.real.scaled, rep=bestrep) # Predicted "Probability" for each class
+loan.neunet.real.pred <- as.factor(max.col(loan.neunet.real.pred.prob))
+levels(loan.neunet.real.pred)<-levels(as.factor(ffnn.test.scaled$Loan_Status))
+
+summary(loan.neunet.real.pred)
+
+```
+
+```{r}
 # Feedforward Neural Networks with Keras and TensorFlow
 library(keras)
 library(tensorflow)
@@ -376,6 +392,16 @@ keras.pred.table <- table(loan.keras.pred, pd.test.Y)
 
 ```{r}
 confusionMatrix(keras.pred.table)
+```
+
+```{r}
+# Real prediction on the test set
+ffnn.real.scaled <- ffnn.real.scaled[,-1]
+loan.keras.real.pred <- predict(ffnn.keras.model, ffnn.real.scaled)
+levels(loan.keras.real.pred)<-levels(as.factor(ffnn.test.scaled$Loan_Status))
+
+summary(loan.neunet.real.pred)
+
 ```
 
 
