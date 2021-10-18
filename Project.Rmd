@@ -83,9 +83,6 @@ mean(knn.pred != pd.test.Y) #MSE
 
 
 ```{r}
-```
-
-```{r}
 #Train with Decision Tree, format selected variables as factors
 library(tree)
 pd.train2 <- pd.train[,c(2:13)]
@@ -257,6 +254,7 @@ set.seed(seed)
 loan.xgb.final = xgboost(data = train2.X, label = train2.y.xgb, nrounds = 500, verbose = FALSE)
 loan.xgb.pred.raw = predict(loan.xgb.final, test2.X)
 loan.xgb.pred.final = rep("N", n.test); loan.xgb.pred.final[loan.xgb.pred.raw>0.5]="Y"
+#End of XGBoost
 ```
 
 ```{r}
