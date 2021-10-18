@@ -83,9 +83,6 @@ mean(knn.pred != pd.test.Y) #MSE
 
 
 ```{r}
-```
-
-```{r}
 #Train with Decision Tree, format selected variables as factors
 library(tree)
 pd.train2 <- pd.train[,c(2:13)]
@@ -130,16 +127,7 @@ loan.tree.pruned.pred=predict(loan.tree.pruned, pd.test2, type="class")
 ```
 
 ```{r}
-#Train with Decision Tree selected above using full training set
-train2 <- train[,c(2:13)]
-train2$Gender <- as.factor(train2$Gender)
-train2$Married <- as.factor(train2$Married)
-train2$Dependents <- as.factor(train2$Dependents)
-train2$Education <- as.factor(train2$Education)
-train2$Self_Employed <- as.factor(train2$Self_Employed)
-train2$Property_Area <- as.factor(train2$Property_Area)
-train2$Loan_Status <- as.factor(train2$Loan_Status)
-train2$Credit_History <- as.factor(train2$Credit_History)
+#Predict with Decision Tree selected above using real test set
 test2 <- test[, c(2:12)]
 test2$Gender <- as.factor(test2$Gender)
 test2$Married <- as.factor(test2$Married)
@@ -148,13 +136,7 @@ test2$Education <- as.factor(test2$Education)
 test2$Self_Employed <- as.factor(test2$Self_Employed)
 test2$Property_Area <- as.factor(test2$Property_Area)
 test2$Credit_History <- as.factor(test2$Credit_History)
-set.seed(seed)
-loan.tree.final <- tree(Loan_Status~.,data = train2)
-loan.tree.final.pruned=prune.tree(loan.tree.final, best=loan.tree.bestsize) 
-summary(loan.tree.final.pruned)
-plot(loan.tree.final.pruned)
-text(loan.tree.final.pruned)
-loan.tree.pred.final <- predict(loan.tree.final.pruned, test2, type = "class")
+loan.tree.pred.final <- predict(loan.tree.pruned, test2, type = "class")
 #End of Decision Tree
 ```
 
@@ -178,15 +160,8 @@ loan.rf.pred <- predict(loan.rf, newdata = pd.test2, type = "class")
 ```
 
 ```{r}
-#Train with RandomForest using all training data
-set.seed(seed)
-p = ncol(train2)-1
-loan.rf.final = randomForest(Loan_Status~., data = train2, mtry = ceiling(sqrt(p)),
-  ntree = 500, importance = TRUE)
-loan.rf.final
-importance(loan.rf.final)
-varImpPlot(loan.rf.final)
-loan.rf.pred.final <- predict(loan.rf.final, newdata = test2, type = "class")
+#Predict with RandomForest using real test data
+loan.rf.pred.final <- predict(loan.rf, newdata = test2, type = "class")
 #End of RandomForest
 ```
 
@@ -215,15 +190,10 @@ loan.ada.predict = predict(loan.ada, pd.test2.X)
 ```
 
 ```{r}
-#Train with AdaBoost using all training data
-n.train.final <- nrow(train2)
+#Predict with AdaBoost using real test data
 n.test.final <- nrow(test2)
-train2.X=model.matrix(Loan_Status~.-1,data=train2) 
-train2.y.ada=rep(1,n.train.final); train2.y.ada[train2$Loan_Status=="N"]=-1  
 test2.X=model.matrix(~.-1, data=test2) 
-set.seed(seed)
-loan.ada.final = adaboost(train2.X, train2.y.ada, n_rounds = 500)
-loan.ada.predict.raw = predict(loan.ada.final, test2.X)
+loan.ada.predict.raw = predict(loan.ada, test2.X)
 loan.ada.predict.final = rep("Y", n.test.final); loan.ada.predict.final[loan.ada.predict.raw==-1]="N"
 #End of AdaBoost
 ```
@@ -250,13 +220,11 @@ loan.xgb.pred = rep(0, n.test); loan.xgb.pred[loan.xgb.pred.val>0.5]=1
 ```
 
 ```{r}
-#Train with XGBoost using all training data
-train2.y.xgb=rep(1,n.train.final); train2.y.xgb[train2$Loan_Status=="N"]=0  
+#Predict with XGBoost using real test data
 test2.y.xgb=rep(1,n.test.final)
-set.seed(seed)
-loan.xgb.final = xgboost(data = train2.X, label = train2.y.xgb, nrounds = 500, verbose = FALSE)
-loan.xgb.pred.raw = predict(loan.xgb.final, test2.X)
+loan.xgb.pred.raw = predict(loan.xgb, test2.X)
 loan.xgb.pred.final = rep("N", n.test); loan.xgb.pred.final[loan.xgb.pred.raw>0.5]="Y"
+#End of XGBoost
 ```
 
 ```{r}
@@ -408,9 +376,12 @@ summary(loan.neunet.real.pred)
 ```{r}
 # Train with Logistic Regression
 
-
+install.packages("caret",dependencies = TRUE)
 library(mlbench)
 library(caret)
+
+
+
 correlationMatrix <- cor(pd.train[,7:10])
 print(correlationMatrix)
 # ApplicantIncome and LoanAmount are highly correlated(0.55)
@@ -421,7 +392,7 @@ summary(nn.fit1)
 nn.pred <- predict(nn.fit1, type = "class" , newdata = pd.test)
 table(nn.pred,pd.test$Loan_Status)
 mean(nn.pred != pd.test.Y) 
-
+Accuracy = 1 - mean(nn.pred != pd.test.Y) ;Accuracy
 importance <- varImp(nn.fit1, scale=FALSE)
 print(importance)
 plot(importance)
@@ -433,6 +404,7 @@ nn.pred <- predict(nn.fit2, type = "class" , newdata = pd.test)
 table(nn.pred,pd.test$Loan_Status)
 mean(nn.pred != pd.test.Y)
 # After deleting all the variables except credit history, we found that error rate does not change.
+
 ```
 
 
@@ -456,23 +428,19 @@ svm.test <- sapply(pd.test, t)
 svm.train = data.frame(svm.train)
 svm.test = data.frame(svm.test)
 #Linear Kernel
-library(mlbench)
-library(caret)
 tune.out <- tune(svm,Loan_Status~., 
                  data=svm.train, 
                  kernel="linear", 
                  ranges=list(cost=c(0.001, 0.01, 0.1, 1,5,10,100)),tunecontrol=tune.control(cross=5))
 summary(tune.out)
-svm.best <- tune.out$best.model
-summary(svm.best)
-svm.pred <- predict(svm.best, svm.test)
+linear_svm.best <- tune.out$best.model
+summary(linear_svm.best)
+svm.pred <- predict(linear_svm.best, svm.test)
 svm.pred  = round(svm.pred)
 table(svm.pred, svm.test$Loan_Status)
 mean(svm.pred != svm.test$Loan_Status )
 
-importance <- varImp(svm.best, scale=FALSE)
-print(importance)
-plot(importance)
+
 #Polynomial Kernel
 set.seed(1)
 tune.out <- tune(svm,Loan_Status~., 
@@ -481,9 +449,9 @@ tune.out <- tune(svm,Loan_Status~.,
                  ranges=list(cost=c(0.001,0.01,0.1,1),
                              degree=c(2,3,4,5)))
 summary(tune.out)
-svm.best <- tune.out$best.model
-summary(svm.best)
-svm.pred <- predict(svm.best, svm.test)
+poly_svm.best <- tune.out$best.model
+summary(poly_svm.best)
+svm.pred <- predict(poly_svm.best, svm.test)
 svm.pred  = round(svm.pred)
 for(x in 1:length(svm.pred)) {
   if (svm.pred[x]<1){
@@ -501,9 +469,9 @@ tune.out <- tune(svm,Loan_Status~.,
                  ranges=list(cost=c(0.001,0.01,0.1,1),
                              gamma=c(0.01,0.1,1,10)))
 summary(tune.out)
-svm.best <- tune.out$best.model
-summary(svm.best)
-svm.pred <- predict(svm.best, svm.test)
+RBF_svm.best <- tune.out$best.model
+summary(RBF_svm.best)
+svm.pred <- predict(RBF_svm.best, svm.test)
 svm.pred  = round(svm.pred)
 for(x in 1:length(svm.pred)) {
   if (svm.pred[x]<1){
@@ -513,6 +481,13 @@ for(x in 1:length(svm.pred)) {
 }
 table(svm.pred, svm.test$Loan_Status)
 mean(svm.pred != svm.test$Loan_Status )
+Accuracy = 1 - mean(svm.pred != svm.test$Loan_Status );Accuracy
 
-
+```
+```{r}
+#Utilize Logistic Regression and SVM to predict test data
+logistic.pred <- predict(nn.fit2, type = "class" , newdata = test)
+linear_svm.pred <- predict(linear_svm.best, type = "class" , newdata = test)
+poly_svm.pred <- predict(poly_svm.best, type = "class" , newdata = test)
+RBF_svm.pred <- predict(RBF_svm.best, type = "class" , newdata = test)
 ```
