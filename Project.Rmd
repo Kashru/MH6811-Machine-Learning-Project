@@ -343,6 +343,13 @@ loan.ffnn.keras = ffnn.keras.model %>%
 
 
 ```{r}
+library(deepviz)
+library(magrittr)
+ffnn.keras.model %>% plot_model()
+```
+
+
+```{r}
 y.keras <- as.factor(pd.test.Y)
 levels(y.keras) = 0:1
 y.keras.test.ohc = to_categorical(y , num_classes = 2)
