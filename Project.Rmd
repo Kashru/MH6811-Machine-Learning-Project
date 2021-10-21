@@ -83,9 +83,6 @@ mean(knn.pred != pd.test.Y) #MSE
 
 
 ```{r}
-```
-
-```{r}
 #Train with Decision Tree, format selected variables as factors
 library(tree)
 pd.train2 <- pd.train[,c(2:13)]
@@ -130,16 +127,7 @@ loan.tree.pruned.pred=predict(loan.tree.pruned, pd.test2, type="class")
 ```
 
 ```{r}
-#Train with Decision Tree selected above using full training set
-train2 <- train[,c(2:13)]
-train2$Gender <- as.factor(train2$Gender)
-train2$Married <- as.factor(train2$Married)
-train2$Dependents <- as.factor(train2$Dependents)
-train2$Education <- as.factor(train2$Education)
-train2$Self_Employed <- as.factor(train2$Self_Employed)
-train2$Property_Area <- as.factor(train2$Property_Area)
-train2$Loan_Status <- as.factor(train2$Loan_Status)
-train2$Credit_History <- as.factor(train2$Credit_History)
+#Predict with Decision Tree selected above using real test set
 test2 <- test[, c(2:12)]
 test2$Gender <- as.factor(test2$Gender)
 test2$Married <- as.factor(test2$Married)
@@ -148,13 +136,7 @@ test2$Education <- as.factor(test2$Education)
 test2$Self_Employed <- as.factor(test2$Self_Employed)
 test2$Property_Area <- as.factor(test2$Property_Area)
 test2$Credit_History <- as.factor(test2$Credit_History)
-set.seed(seed)
-loan.tree.final <- tree(Loan_Status~.,data = train2)
-loan.tree.final.pruned=prune.tree(loan.tree.final, best=loan.tree.bestsize) 
-summary(loan.tree.final.pruned)
-plot(loan.tree.final.pruned)
-text(loan.tree.final.pruned)
-loan.tree.pred.final <- predict(loan.tree.final.pruned, test2, type = "class")
+loan.tree.pred.final <- predict(loan.tree.pruned, test2, type = "class")
 #End of Decision Tree
 ```
 
@@ -178,15 +160,8 @@ loan.rf.pred <- predict(loan.rf, newdata = pd.test2, type = "class")
 ```
 
 ```{r}
-#Train with RandomForest using all training data
-set.seed(seed)
-p = ncol(train2)-1
-loan.rf.final = randomForest(Loan_Status~., data = train2, mtry = ceiling(sqrt(p)),
-  ntree = 500, importance = TRUE)
-loan.rf.final
-importance(loan.rf.final)
-varImpPlot(loan.rf.final)
-loan.rf.pred.final <- predict(loan.rf.final, newdata = test2, type = "class")
+#Predict with RandomForest using real test data
+loan.rf.pred.final <- predict(loan.rf, newdata = test2, type = "class")
 #End of RandomForest
 ```
 
@@ -215,15 +190,10 @@ loan.ada.predict = predict(loan.ada, pd.test2.X)
 ```
 
 ```{r}
-#Train with AdaBoost using all training data
-n.train.final <- nrow(train2)
+#Predict with AdaBoost using real test data
 n.test.final <- nrow(test2)
-train2.X=model.matrix(Loan_Status~.-1,data=train2) 
-train2.y.ada=rep(1,n.train.final); train2.y.ada[train2$Loan_Status=="N"]=-1  
 test2.X=model.matrix(~.-1, data=test2) 
-set.seed(seed)
-loan.ada.final = adaboost(train2.X, train2.y.ada, n_rounds = 500)
-loan.ada.predict.raw = predict(loan.ada.final, test2.X)
+loan.ada.predict.raw = predict(loan.ada, test2.X)
 loan.ada.predict.final = rep("Y", n.test.final); loan.ada.predict.final[loan.ada.predict.raw==-1]="N"
 #End of AdaBoost
 ```
@@ -250,13 +220,11 @@ loan.xgb.pred = rep(0, n.test); loan.xgb.pred[loan.xgb.pred.val>0.5]=1
 ```
 
 ```{r}
-#Train with XGBoost using all training data
-train2.y.xgb=rep(1,n.train.final); train2.y.xgb[train2$Loan_Status=="N"]=0  
+#Predict with XGBoost using real test data
 test2.y.xgb=rep(1,n.test.final)
-set.seed(seed)
-loan.xgb.final = xgboost(data = train2.X, label = train2.y.xgb, nrounds = 500, verbose = FALSE)
-loan.xgb.pred.raw = predict(loan.xgb.final, test2.X)
+loan.xgb.pred.raw = predict(loan.xgb, test2.X)
 loan.xgb.pred.final = rep("N", n.test); loan.xgb.pred.final[loan.xgb.pred.raw>0.5]="Y"
+#End of XGBoost
 ```
 
 ```{r}
@@ -317,6 +285,22 @@ confusionMatrix(pred.table)
 ```
 
 ```{r}
+# Real prediction on the test set
+ffnn.real <- sapply(test, t)
+ffnn.real.mean <- apply(ffnn.real, 2, mean)
+ffnn.real.sd <- apply(ffnn.real, 2, sd)
+ffnn.real.scaled <- scale(ffnn.real,center=ffnn.real.mean,scale=ffnn.real.sd)
+ffnn.real.scaled <- as.matrix(ffnn.real.scaled)
+
+loan.neunet.real.pred.prob <- predict(loan.neunet.rep, ffnn.real.scaled, rep=bestrep) # Predicted "Probability" for each class
+loan.neunet.real.pred <- as.factor(max.col(loan.neunet.real.pred.prob))
+levels(loan.neunet.real.pred)<-levels(as.factor(ffnn.test.scaled$Loan_Status))
+
+summary(loan.neunet.real.pred)
+
+```
+
+```{r}
 # Feedforward Neural Networks with Keras and TensorFlow
 library(keras)
 library(tensorflow)
@@ -359,6 +343,13 @@ loan.ffnn.keras = ffnn.keras.model %>%
 
 
 ```{r}
+library(deepviz)
+library(magrittr)
+ffnn.keras.model %>% plot_model()
+```
+
+
+```{r}
 y.keras <- as.factor(pd.test.Y)
 levels(y.keras) = 0:1
 y.keras.test.ohc = to_categorical(y , num_classes = 2)
@@ -376,6 +367,16 @@ keras.pred.table <- table(loan.keras.pred, pd.test.Y)
 
 ```{r}
 confusionMatrix(keras.pred.table)
+```
+
+```{r}
+# Real prediction on the test set
+ffnn.real.scaled <- ffnn.real.scaled[,-1]
+loan.keras.real.pred <- predict(ffnn.keras.model, ffnn.real.scaled)
+levels(loan.keras.real.pred)<-levels(as.factor(ffnn.test.scaled$Loan_Status))
+
+summary(loan.neunet.real.pred)
+
 ```
 
 
