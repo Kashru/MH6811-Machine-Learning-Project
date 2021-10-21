@@ -383,7 +383,7 @@ summary(loan.neunet.real.pred)
 ```{r}
 # Train with Logistic Regression and regularization
 
-install.packages("caret",dependencies = TRUE)
+# install.packages("caret",dependencies = TRUE)
 library(mlbench)
 library(caret)
 
