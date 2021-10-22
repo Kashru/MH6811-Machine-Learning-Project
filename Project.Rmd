@@ -148,8 +148,8 @@ p = ncol(pd.train2)-1
 loan.rf = randomForest(Loan_Status~., data = pd.train2, mtry = ceiling(sqrt(p)),
   ntree = 500, importance = TRUE)
 loan.rf
-#importance(loan.rf)
-#varImpPlot(loan.rf)
+importance(loan.rf)
+varImpPlot(loan.rf)
 ```
 
 ```{r}
@@ -267,7 +267,6 @@ loan.neunet.rep <- neuralnet(Loan_Status ~ ., data = ffnn.train.scaled,
                          threshold = 0.1)
 (bestrep<-which.min(loan.neunet.rep$result.matrix["error",]))
 loan.neunet.rep$weights[[bestrep]]
-
 ```
 
 ```{r}
@@ -292,7 +291,8 @@ ffnn.real.sd <- apply(ffnn.real, 2, sd)
 ffnn.real.scaled <- scale(ffnn.real,center=ffnn.real.mean,scale=ffnn.real.sd)
 ffnn.real.scaled <- as.matrix(ffnn.real.scaled)
 
-loan.neunet.real.pred.prob <- predict(loan.neunet.rep, ffnn.real.scaled, rep=bestrep) # Predicted "Probability" for each class
+loan.neunet.real.pred.prob <- predict(loan.neunet.rep, ffnn.real.scaled, rep=bestrep) 
+# Predicted "Probability" for each class
 loan.neunet.real.pred <- as.factor(max.col(loan.neunet.real.pred.prob))
 levels(loan.neunet.real.pred)<-levels(as.factor(ffnn.test.scaled$Loan_Status))
 
@@ -459,7 +459,6 @@ nn.pred <- predict(nn.fit2, type = "class" , newdata = pd.test)
 table(nn.pred,pd.test$Loan_Status)
 mean(nn.pred != pd.test.Y)
 # After deleting all the variables except credit history, we found that error rate does not change.
-
 ```
 
 
@@ -488,14 +487,12 @@ for(x in 1:length(svm.train$Loan_Status)) {
   if (svm.train$Loan_Status[x] == 2){
     svm.train$Loan_Status[x] = 0
   }
-    
 }
 svm.test$Loan_Status
 for(x in 1:length(svm.test$Loan_Status)) {
   if (svm.test$Loan_Status[x] == 2){
     svm.test$Loan_Status[x] = 0
   }
-    
 }
 
 #Linear Kernel
@@ -511,7 +508,6 @@ svm.pred <- predict(linear_svm.best, svm.test)
 svm.pred  = round(svm.pred)
 table(svm.pred, svm.test$Loan_Status)
 mean(svm.pred != svm.test$Loan_Status )
-
 
 #Polynomial Kernel
 set.seed(1)
@@ -529,7 +525,6 @@ for(x in 1:length(svm.pred)) {
   if (svm.pred[x]<1){
     svm.pred[x] = 1
   }
-    
 }
 table(svm.pred, svm.test$Loan_Status)
 mean(svm.pred != svm.test$Loan_Status)
@@ -550,18 +545,16 @@ for(x in 1:length(svm.pred)) {
   if (svm.pred[x]<1){
     svm.pred[x] = 1
   }
-  
 }
 table(svm.pred, svm.test$Loan_Status)
 mean(svm.pred != svm.test$Loan_Status )
 Accuracy = 1 - mean(svm.pred != svm.test$Loan_Status );Accuracy
-
 ```
 
 ```{r}
 #Utilize Logistic Regression and SVM to predict test data
 logistic.pred <- predict(nn.fit2, type = "class" , newdata = test)
-linear_svm.pred <- predict(linear_svm.best, type = "class" , newdata = test)
+linear_svm.pred <- predict(linear_svm.best, test)
 poly_svm.pred <- predict(poly_svm.best, type = "class" , newdata = test)
 RBF_svm.pred <- predict(RBF_svm.best, type = "class" , newdata = test)
 ```
