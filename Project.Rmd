@@ -250,7 +250,6 @@ ffnn.test.scaled<-data.frame(ffnn.test.X.scaled,Loan_Status=pd.test.Y)
 
 ffnn.train.X.scaled<-as.matrix(ffnn.train.X.scaled)
 ffnn.test.X.scaled<-as.matrix(ffnn.test.X.scaled)
-
 ```
 
 
@@ -460,7 +459,6 @@ table(nn.pred,pd.test$Loan_Status)
 mean(nn.pred != pd.test.Y)
 # After deleting all the variables except credit history, we found that error rate does not change.
 ```
-
 
 ```{r}
 #Train with SVM
