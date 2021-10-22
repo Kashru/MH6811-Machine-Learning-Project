@@ -148,8 +148,8 @@ p = ncol(pd.train2)-1
 loan.rf = randomForest(Loan_Status~., data = pd.train2, mtry = ceiling(sqrt(p)),
   ntree = 500, importance = TRUE)
 loan.rf
-#importance(loan.rf)
-#varImpPlot(loan.rf)
+importance(loan.rf)
+varImpPlot(loan.rf)
 ```
 
 ```{r}
@@ -267,12 +267,12 @@ loan.neunet.rep <- neuralnet(Loan_Status ~ ., data = ffnn.train.scaled,
                          threshold = 0.1)
 (bestrep<-which.min(loan.neunet.rep$result.matrix["error",]))
 loan.neunet.rep$weights[[bestrep]]
-
 ```
+
 ```{r}
 plot(loan.neunet.rep,rep=bestrep) 
-
 ```
+
 ```{r}
 # Test error
 loan.neunet.pred.prob <- predict(loan.neunet.rep, ffnn.test.scaled, rep=bestrep) # Predicted "Probability" for each class
@@ -281,7 +281,6 @@ levels(loan.neunet.pred)<-levels(as.factor(ffnn.test.scaled$Loan_Status))
 pred.table <- table(loan.neunet.pred, pd.test.Y)
 library("caret")
 confusionMatrix(pred.table)
-
 ```
 
 ```{r}
@@ -292,12 +291,12 @@ ffnn.real.sd <- apply(ffnn.real, 2, sd)
 ffnn.real.scaled <- scale(ffnn.real,center=ffnn.real.mean,scale=ffnn.real.sd)
 ffnn.real.scaled <- as.matrix(ffnn.real.scaled)
 
-loan.neunet.real.pred.prob <- predict(loan.neunet.rep, ffnn.real.scaled, rep=bestrep) # Predicted "Probability" for each class
+loan.neunet.real.pred.prob <- predict(loan.neunet.rep, ffnn.real.scaled, rep=bestrep) 
+# Predicted "Probability" for each class
 loan.neunet.real.pred <- as.factor(max.col(loan.neunet.real.pred.prob))
 levels(loan.neunet.real.pred)<-levels(as.factor(ffnn.test.scaled$Loan_Status))
 
 summary(loan.neunet.real.pred)
-
 ```
 
 ```{r}
@@ -308,7 +307,6 @@ library(tensorflow)
 y.keras <- as.factor(pd.train.Y)
 levels(y.keras) = 0:1
 y.keras.ohc = to_categorical(y.keras , num_classes = 2)
-
 ```
 
 ```{r}
@@ -338,7 +336,6 @@ loan.ffnn.keras = ffnn.keras.model %>%
     shuffle = T,
     epochs = 100
   )
-
 ```
 
 
@@ -354,7 +351,6 @@ y.keras <- as.factor(pd.test.Y)
 levels(y.keras) = 0:1
 y.keras.test.ohc = to_categorical(y , num_classes = 2)
 evaluate(ffnn.keras.model, ffnn.test.X.scaled, y.keras.test.ohc, batch_size =1)
-
 ```
 
 ```{r}
@@ -376,23 +372,22 @@ loan.keras.real.pred <- predict(ffnn.keras.model, ffnn.real.scaled)
 levels(loan.keras.real.pred)<-levels(as.factor(ffnn.test.scaled$Loan_Status))
 
 summary(loan.neunet.real.pred)
-
 ```
 
 
 ```{r}
 # Train with Logistic Regression and regularization
 
-install.packages("caret",dependencies = TRUE)
+# install.packages("caret",dependencies = TRUE)
 library(mlbench)
 library(caret)
 
-
-
 correlationMatrix <- cor(pd.train[,7:10])
 print(correlationMatrix)
+```
 # ApplicantIncome and LoanAmount are highly correlated(0.55)
 
+```{r}
 library(nnet)
 nn.fit1 <- multinom(Loan_Status ~ Gender + Married + Dependents + Education + Self_Employed + ApplicantIncome + CoapplicantIncome + LoanAmount+ Loan_Amount_Term + Credit_History + Property_Area,data = pd.train)
 summary(nn.fit1)
@@ -464,7 +459,6 @@ nn.pred <- predict(nn.fit2, type = "class" , newdata = pd.test)
 table(nn.pred,pd.test$Loan_Status)
 mean(nn.pred != pd.test.Y)
 # After deleting all the variables except credit history, we found that error rate does not change.
-
 ```
 
 
@@ -483,9 +477,6 @@ t <- function(x) {
   return (y)
 }
 
-
-
-
 svm.train <- sapply(pd.train, t)
 svm.test <- sapply(pd.test, t)
 svm.train = data.frame(svm.train)
@@ -496,18 +487,13 @@ for(x in 1:length(svm.train$Loan_Status)) {
   if (svm.train$Loan_Status[x] == 2){
     svm.train$Loan_Status[x] = 0
   }
-    
 }
 svm.test$Loan_Status
 for(x in 1:length(svm.test$Loan_Status)) {
   if (svm.test$Loan_Status[x] == 2){
     svm.test$Loan_Status[x] = 0
   }
-    
 }
-
-
-
 
 #Linear Kernel
 cost = c(0.001, 0.01, 0.1, 1,5,10,100)
@@ -522,7 +508,6 @@ svm.pred <- predict(linear_svm.best, svm.test)
 svm.pred  = round(svm.pred)
 table(svm.pred, svm.test$Loan_Status)
 mean(svm.pred != svm.test$Loan_Status )
-
 
 #Polynomial Kernel
 set.seed(1)
@@ -540,10 +525,10 @@ for(x in 1:length(svm.pred)) {
   if (svm.pred[x]<1){
     svm.pred[x] = 1
   }
-    
 }
 table(svm.pred, svm.test$Loan_Status)
-mean(svm.pred != svm.test$Loan_Status )
+mean(svm.pred != svm.test$Loan_Status)
+
 #RBF Kernel
 set.seed(1)
 tune.out <- tune(svm,Loan_Status~., 
@@ -560,13 +545,12 @@ for(x in 1:length(svm.pred)) {
   if (svm.pred[x]<1){
     svm.pred[x] = 1
   }
-  
 }
 table(svm.pred, svm.test$Loan_Status)
 mean(svm.pred != svm.test$Loan_Status )
 Accuracy = 1 - mean(svm.pred != svm.test$Loan_Status );Accuracy
-
 ```
+
 ```{r}
 #Utilize Logistic Regression and SVM to predict test data
 library(e1071)
@@ -585,7 +569,7 @@ t <- function(x) {
 svm.test <- sapply(test, t)
 svm.test = data.frame(svm.test)
 
-svm.testLoan_Status[1]
+svm.test
 for(x in 1:length(svm.train$Loan_Status)) {
   if (svm.train$Loan_Status[x] == 2){
     svm.train$Loan_Status[x] = 0
@@ -596,3 +580,6 @@ linear_svm.pred <- predict(linear_svm.best, svm.test)
 poly_svm.pred <- predict(poly_svm.best,svm.test)
 RBF_svm.pred <- predict(RBF_svm.best,svm.test)
 ``
+
+```
+>>>>>>> 4816d5b2168382bc240481e46c5998a6927adfd3
