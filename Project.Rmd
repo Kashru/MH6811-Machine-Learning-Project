@@ -137,6 +137,7 @@ test2$Self_Employed <- as.factor(test2$Self_Employed)
 test2$Property_Area <- as.factor(test2$Property_Area)
 test2$Credit_History <- as.factor(test2$Credit_History)
 loan.tree.pred.final <- predict(loan.tree.pruned, test2, type = "class")
+summary(loan.tree.pred.final)
 #End of Decision Tree
 ```
 
@@ -163,6 +164,7 @@ loan.rf.pred <- predict(loan.rf, newdata = pd.test2, type = "class")
 ```{r}
 #Predict with RandomForest using real test data
 loan.rf.pred.final <- predict(loan.rf, newdata = test2, type = "class")
+summary(loan.rf.pred.final)
 #End of RandomForest
 ```
 
@@ -196,6 +198,7 @@ n.test.final <- nrow(test2)
 test2.X=model.matrix(~.-1, data=test2) 
 loan.ada.predict.raw = predict(loan.ada, test2.X)
 loan.ada.predict.final = rep("Y", n.test.final); loan.ada.predict.final[loan.ada.predict.raw==-1]="N"
+summary(loan.ada.predict.final)
 #End of AdaBoost
 ```
 
@@ -225,6 +228,7 @@ loan.xgb.pred = rep(0, n.test); loan.xgb.pred[loan.xgb.pred.val>0.5]=1
 test2.y.xgb=rep(1,n.test.final)
 loan.xgb.pred.raw = predict(loan.xgb, test2.X)
 loan.xgb.pred.final = rep("N", n.test); loan.xgb.pred.final[loan.xgb.pred.raw>0.5]="Y"
+summary(loan.xgb.pred.final)
 #End of XGBoost
 ```
 
@@ -341,16 +345,16 @@ loan.ffnn.keras = ffnn.keras.model %>%
 
 ```{r}
 #Plot keras model
-library(deepviz)
-library(magrittr)
-ffnn.keras.model %>% plot_model()
+#library(deepviz)
+#library(magrittr)
+#ffnn.keras.model %>% plot_model()
 ```
 
 
 ```{r}
 y.keras <- as.factor(pd.test.Y)
 levels(y.keras) = 0:1
-y.keras.test.ohc = to_categorical(y , num_classes = 2)
+y.keras.test.ohc = to_categorical(y.keras , num_classes = 2)
 evaluate(ffnn.keras.model, ffnn.test.X.scaled, y.keras.test.ohc, batch_size =1)
 ```
 
@@ -601,12 +605,11 @@ for(x in 1:length(RBF_svm.pred)) {
   
 }
 
-logistic.pred
-linear_svm.pred
-poly_svm.pred
-RBF_svm.pred
-table(linear_svm.pred,poly_svm.pred)
-
+#logistic.pred
+#linear_svm.pred
+#poly_svm.pred
+#RBF_svm.pred
+#table(linear_svm.pred,poly_svm.pred)
 
 ```
 >>>>>>> 4816d5b2168382bc240481e46c5998a6927adfd3
