@@ -39,7 +39,7 @@ sum(is.na(test))
 
 
 ```{r}
-# Divide the train and test data sets for training with a ratio of 7:3
+# Divide the pseudo-train and pseudo-test data sets for training with a ratio of 7:3
 seed <- 114514
 set.seed(seed)
 sub<-sample(1:nrow(train),round(nrow(train)*7/10))
@@ -54,7 +54,7 @@ pd.test.Y <- pd.test[,13]
 
 
 ```{r}
-# Train with knn
+# Train with KNN
 library(CatEncoders)
 t <- function(x) {
   # check if x is numeric
@@ -77,7 +77,7 @@ for(k in 1:Kmax){
 plot(ErrTe,type="l")
 print(which.min(ErrTe))
 knn.pred <- knn(train = knn.train.X, test = knn.test.X, cl = pd.train.Y, k = 9)
-table(knn.pred, pd.test.Y)
+table(knn.pred, pd.test.Y) #Confusion matrix
 mean(knn.pred != pd.test.Y) #MSE
 ```
 
@@ -127,7 +127,7 @@ loan.tree.pruned.pred=predict(loan.tree.pruned, pd.test2, type="class")
 ```
 
 ```{r}
-#Predict with Decision Tree selected above using real test set
+#Predict with Best Decision Tree selected above using real test set
 test2 <- test[, c(2:12)]
 test2$Gender <- as.factor(test2$Gender)
 test2$Married <- as.factor(test2$Married)
@@ -148,6 +148,7 @@ p = ncol(pd.train2)-1
 loan.rf = randomForest(Loan_Status~., data = pd.train2, mtry = ceiling(sqrt(p)),
   ntree = 500, importance = TRUE)
 loan.rf
+#Variable importance
 importance(loan.rf)
 varImpPlot(loan.rf)
 ```
@@ -339,6 +340,7 @@ loan.ffnn.keras = ffnn.keras.model %>%
 
 
 ```{r}
+#Plot keras model
 library(deepviz)
 library(magrittr)
 ffnn.keras.model %>% plot_model()
@@ -353,6 +355,7 @@ evaluate(ffnn.keras.model, ffnn.test.X.scaled, y.keras.test.ohc, batch_size =1)
 ```
 
 ```{r}
+#Prediction accuracy
 loan.keras.pred.prob<-predict(ffnn.keras.model, ffnn.test.X.scaled, y.keras.test.ohc, batch_size =1)
 loan.keras.pred<-as.factor(max.col(loan.keras.pred.prob))
 levels(loan.keras.pred) <- levels(as.factor(pd.test.Y))
@@ -380,7 +383,7 @@ summary(loan.neunet.real.pred)
 # install.packages("caret",dependencies = TRUE)
 library(mlbench)
 library(caret)
-
+# Check correlation between variables
 correlationMatrix <- cor(pd.train[,7:10])
 print(correlationMatrix)
 ```
