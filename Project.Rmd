@@ -452,7 +452,7 @@ for(x in 1:length(lasso_predict)) {
 }
 table(lasso_predict,lasso.test$Loan_Status)
 mean(lasso_predict != lasso.test$Loan_Status)
-
+1-mean(lasso_predict != lasso.test$Loan_Status)
 # we can see that credit history is much more important than the others
 
 nn.fit2 = multinom(Loan_Status ~ Credit_History ,data = pd.train)
@@ -483,13 +483,11 @@ svm.test <- sapply(pd.test, t)
 svm.train = data.frame(svm.train)
 svm.test = data.frame(svm.test)
 
-svm.train$Loan_Status[1]
 for(x in 1:length(svm.train$Loan_Status)) {
   if (svm.train$Loan_Status[x] == 2){
     svm.train$Loan_Status[x] = 0
   }
 }
-svm.test$Loan_Status
 for(x in 1:length(svm.test$Loan_Status)) {
   if (svm.test$Loan_Status[x] == 2){
     svm.test$Loan_Status[x] = 0
@@ -523,9 +521,11 @@ summary(poly_svm.best)
 svm.pred <- predict(poly_svm.best, svm.test)
 svm.pred  = round(svm.pred)
 for(x in 1:length(svm.pred)) {
-  if (svm.pred[x]<1){
-    svm.pred[x] = 1
-  }
+  if (svm.pred[x]<0.5){
+    svm.pred[x] = 0}
+  if (svm.pred[x] >=0.5){
+    svm.pred[x] = 1}
+
 }
 table(svm.pred, svm.test$Loan_Status)
 mean(svm.pred != svm.test$Loan_Status)
@@ -543,9 +543,11 @@ summary(RBF_svm.best)
 svm.pred <- predict(RBF_svm.best, svm.test)
 svm.pred  = round(svm.pred)
 for(x in 1:length(svm.pred)) {
-  if (svm.pred[x]<1){
-    svm.pred[x] = 1
-  }
+  if (svm.pred[x]<0.5){
+    svm.pred[x] = 0}
+  if (svm.pred[x] >=0.5){
+    svm.pred[x] = 1}
+
 }
 table(svm.pred, svm.test$Loan_Status)
 mean(svm.pred != svm.test$Loan_Status )
@@ -554,6 +556,7 @@ Accuracy = 1 - mean(svm.pred != svm.test$Loan_Status );Accuracy
 
 ```{r}
 #Utilize Logistic Regression and SVM to predict test data
+
 library(e1071)
 set.seed(1)
 library(CatEncoders)
@@ -570,17 +573,40 @@ t <- function(x) {
 svm.test <- sapply(test, t)
 svm.test = data.frame(svm.test)
 
-svm.test
-for(x in 1:length(svm.train$Loan_Status)) {
-  if (svm.train$Loan_Status[x] == 2){
-    svm.train$Loan_Status[x] = 0
-  }
-    
+
 logistic.pred <- predict(nn.fit2, type = "class" , newdata = test)
 linear_svm.pred <- predict(linear_svm.best, svm.test)
 poly_svm.pred <- predict(poly_svm.best,svm.test)
 RBF_svm.pred <- predict(RBF_svm.best,svm.test)
-``
+
+for(x in 1:length(linear_svm.pred)) {
+    if (linear_svm.pred[x]<0.5){
+      linear_svm.pred[x] = 0}
+    if (linear_svm.pred[x] >0.5){
+      linear_svm.pred[x] = 1}
+  
+}  
+for(x in 1:length(poly_svm.pred)) {
+    if (poly_svm.pred[x]<0.5){
+      poly_svm.pred[x] = 0}
+    if (poly_svm.pred[x] >=0.5){
+      poly_svm.pred[x] = 1}
+  
+}
+for(x in 1:length(RBF_svm.pred)) {
+    if (RBF_svm.pred[x]<0.5){
+      RBF_svm.pred[x] = 0}
+    if (RBF_svm.pred[x] >=0.5){
+      RBF_svm.pred[x] = 1}
+  
+}
+
+logistic.pred
+linear_svm.pred
+poly_svm.pred
+RBF_svm.pred
+table(linear_svm.pred,poly_svm.pred)
+
 
 ```
 >>>>>>> 4816d5b2168382bc240481e46c5998a6927adfd3
