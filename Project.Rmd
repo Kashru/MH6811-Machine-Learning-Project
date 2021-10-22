@@ -569,8 +569,30 @@ Accuracy = 1 - mean(svm.pred != svm.test$Loan_Status );Accuracy
 ```
 ```{r}
 #Utilize Logistic Regression and SVM to predict test data
+library(e1071)
+set.seed(1)
+library(CatEncoders)
+t <- function(x) {
+  # check if x is numeric
+  if(is.numeric(x)) {
+    return (x)
+  }
+  l <- LabelEncoder.fit(x)
+  y <- transform(l, x)
+  return (y)
+}
+
+svm.test <- sapply(test, t)
+svm.test = data.frame(svm.test)
+
+svm.testLoan_Status[1]
+for(x in 1:length(svm.train$Loan_Status)) {
+  if (svm.train$Loan_Status[x] == 2){
+    svm.train$Loan_Status[x] = 0
+  }
+    
 logistic.pred <- predict(nn.fit2, type = "class" , newdata = test)
-linear_svm.pred <- predict(linear_svm.best, type = "class" , newdata = test)
-poly_svm.pred <- predict(poly_svm.best, type = "class" , newdata = test)
-RBF_svm.pred <- predict(RBF_svm.best, type = "class" , newdata = test)
+linear_svm.pred <- predict(linear_svm.best, svm.test)
+poly_svm.pred <- predict(poly_svm.best,svm.test)
+RBF_svm.pred <- predict(RBF_svm.best,svm.test)
 ``
