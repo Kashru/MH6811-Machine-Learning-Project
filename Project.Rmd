@@ -269,10 +269,11 @@ loan.neunet.rep <- neuralnet(Loan_Status ~ ., data = ffnn.train.scaled,
 loan.neunet.rep$weights[[bestrep]]
 
 ```
+
 ```{r}
 plot(loan.neunet.rep,rep=bestrep) 
-
 ```
+
 ```{r}
 # Test error
 loan.neunet.pred.prob <- predict(loan.neunet.rep, ffnn.test.scaled, rep=bestrep) # Predicted "Probability" for each class
@@ -281,7 +282,6 @@ levels(loan.neunet.pred)<-levels(as.factor(ffnn.test.scaled$Loan_Status))
 pred.table <- table(loan.neunet.pred, pd.test.Y)
 library("caret")
 confusionMatrix(pred.table)
-
 ```
 
 ```{r}
@@ -297,7 +297,6 @@ loan.neunet.real.pred <- as.factor(max.col(loan.neunet.real.pred.prob))
 levels(loan.neunet.real.pred)<-levels(as.factor(ffnn.test.scaled$Loan_Status))
 
 summary(loan.neunet.real.pred)
-
 ```
 
 ```{r}
@@ -308,7 +307,6 @@ library(tensorflow)
 y.keras <- as.factor(pd.train.Y)
 levels(y.keras) = 0:1
 y.keras.ohc = to_categorical(y.keras , num_classes = 2)
-
 ```
 
 ```{r}
@@ -338,7 +336,6 @@ loan.ffnn.keras = ffnn.keras.model %>%
     shuffle = T,
     epochs = 100
   )
-
 ```
 
 
@@ -354,7 +351,6 @@ y.keras <- as.factor(pd.test.Y)
 levels(y.keras) = 0:1
 y.keras.test.ohc = to_categorical(y , num_classes = 2)
 evaluate(ffnn.keras.model, ffnn.test.X.scaled, y.keras.test.ohc, batch_size =1)
-
 ```
 
 ```{r}
@@ -376,7 +372,6 @@ loan.keras.real.pred <- predict(ffnn.keras.model, ffnn.real.scaled)
 levels(loan.keras.real.pred)<-levels(as.factor(ffnn.test.scaled$Loan_Status))
 
 summary(loan.neunet.real.pred)
-
 ```
 
 
@@ -387,12 +382,12 @@ summary(loan.neunet.real.pred)
 library(mlbench)
 library(caret)
 
-
-
 correlationMatrix <- cor(pd.train[,7:10])
 print(correlationMatrix)
+```
 # ApplicantIncome and LoanAmount are highly correlated(0.55)
 
+```{r}
 library(nnet)
 nn.fit1 <- multinom(Loan_Status ~ Gender + Married + Dependents + Education + Self_Employed + ApplicantIncome + CoapplicantIncome + LoanAmount+ Loan_Amount_Term + Credit_History + Property_Area,data = pd.train)
 summary(nn.fit1)
@@ -483,9 +478,6 @@ t <- function(x) {
   return (y)
 }
 
-
-
-
 svm.train <- sapply(pd.train, t)
 svm.test <- sapply(pd.test, t)
 svm.train = data.frame(svm.train)
@@ -505,9 +497,6 @@ for(x in 1:length(svm.test$Loan_Status)) {
   }
     
 }
-
-
-
 
 #Linear Kernel
 cost = c(0.001, 0.01, 0.1, 1,5,10,100)
@@ -543,7 +532,8 @@ for(x in 1:length(svm.pred)) {
     
 }
 table(svm.pred, svm.test$Loan_Status)
-mean(svm.pred != svm.test$Loan_Status )
+mean(svm.pred != svm.test$Loan_Status)
+
 #RBF Kernel
 set.seed(1)
 tune.out <- tune(svm,Loan_Status~., 
@@ -567,10 +557,11 @@ mean(svm.pred != svm.test$Loan_Status )
 Accuracy = 1 - mean(svm.pred != svm.test$Loan_Status );Accuracy
 
 ```
+
 ```{r}
 #Utilize Logistic Regression and SVM to predict test data
 logistic.pred <- predict(nn.fit2, type = "class" , newdata = test)
 linear_svm.pred <- predict(linear_svm.best, type = "class" , newdata = test)
 poly_svm.pred <- predict(poly_svm.best, type = "class" , newdata = test)
 RBF_svm.pred <- predict(RBF_svm.best, type = "class" , newdata = test)
-``
+```
